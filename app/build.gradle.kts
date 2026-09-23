@@ -65,8 +65,8 @@ android {
         applicationId = "org.opengrind.google_oauth"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1002000
-        versionName = "1.2.0"
+        versionCode = 1003000
+        versionName = "1.3.0"
     }
 
     signingConfigs {
