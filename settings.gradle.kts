@@ -23,5 +23,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Open Grind Google OAuth"
+rootProject.name = "Free Grind Google OAuth"
 include(":app")

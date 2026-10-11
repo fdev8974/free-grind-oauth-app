@@ -12,7 +12,7 @@ First read [BUILDING.md in Open Grind repository](https://git.opengrind.org/open
 Clone repository:
 
 ```bash
-git clone --recurse-submodules https://git.opengrind.org/open-grind/google-oauth-app.git
+git clone --recurse-submodules https://github.com/fdev8974/free-grind-oauth-app.git
 ```
 
 ## Build with Docker (easiest, Linux x86_64 only)
@@ -53,18 +53,27 @@ Prerequisites:
 
 ## Signing
 
-Official releases are signed with the Open Grind release keystore. Open Grind sends token requests only to a Google OAuth app signed with that key, and this app answers only Open Grind builds whose certificate SHA-256 is listed in `SIGNING_CERTS_SHA256` in [OpenGrindTrust.kt](./app/src/main/java/org/opengrind/google_oauth/OpenGrindTrust.kt): the Open Grind release key and Google Play's app signing key.
+Free Grind and this app trust each other only when both are signed with the same key:
 
-To sign with your own key, create a keystore with the [keytool recipe](https://git.opengrind.org/open-grind/open-grind/src/branch/main/BUILDING.md#sign-android-build), then copy [contrib/keystore.properties.example](./contrib/keystore.properties.example). Token requests and hand-back between your own builds work only after you add your certificate's SHA-256 to `SIGNING_CERTS_SHA256` and set it as `RELEASE_CERT_SHA256` in Open Grind's [InstallGate.kt](https://git.opengrind.org/open-grind/open-grind/src/branch/main/src-tauri/android-logic/src/main/kotlin/org/opengrind/update/InstallGate.kt).
+- This app answers only Free Grind builds whose certificate SHA-256 is listed in `SIGNING_CERTS_SHA256` in [FreeGrindTrust.kt](./app/src/main/java/dev/estopia/free_grind/google_oauth/FreeGrindTrust.kt): the GitHub Actions release key and the local `src-tauri/certs/free-grind-dev.jks`.
+- Free Grind accepts tokens only from a `dev.estopia.free_grind.google_oauth` install whose signature matches its own.
+
+So sign this app with the keystore that signed the Free Grind build you use. Copy [contrib/keystore.properties.example](./contrib/keystore.properties.example) and point it at that keystore:
 
 ```bash
-GRINDR_OAUTH_KEYSTORE_PROPERTIES=/home/you/.config/open-grind/keystore.properties \
+GRINDR_OAUTH_KEYSTORE_PROPERTIES=/home/you/.config/free-grind/keystore.properties \
   nix run .#build-android
 ```
 
+`contrib/sign-release.sh <tag>` checks that every APK is signed with the release certificate.
+
 ## Verifying a release
 
-Follow [Open Grind's § Verify minisign signature](https://git.opengrind.org/open-grind/open-grind/src/branch/main/BUILDING.md#verify-minisign-signature).
+```bash
+apksigner verify --print-certs free-grind-google-oauth-<tag>-<abi>.apk
+```
+
+The certificate SHA-256 must be `7ce9e5cdac620ec798bea6749aed4c6d59bf12ab5e1dc8cb59c117bb929fc9d0`.
 
 ## Reproducibility
 

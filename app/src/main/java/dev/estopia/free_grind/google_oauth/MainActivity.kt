@@ -1,4 +1,4 @@
-package org.opengrind.google_oauth
+package dev.estopia.free_grind.google_oauth
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
@@ -33,7 +33,7 @@ open class MainActivity : ComponentActivity() {
     private var popupSession: GeckoSession? = null
     private var extension: WebExtension? = null
     private var pendingToken: String? = null
-    private var openGrindHasTheToken = false
+    private var freeGrindHasTheToken = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -95,12 +95,12 @@ open class MainActivity : ComponentActivity() {
 
     protected open fun isLaunchAllowed(): Boolean = true
 
-    protected fun isTrustedOpenGrind(packageName: String?): Boolean =
-        OpenGrindTrust.trusts(
+    protected fun isTrustedFreeGrind(packageName: String?): Boolean =
+        FreeGrindTrust.trusts(
             packageName = packageName,
-            certificates = { openGrind, sha256 ->
+            certificates = { freeGrind, sha256 ->
                 packageManager.hasSigningCertificate(
-                    openGrind,
+                    freeGrind,
                     sha256,
                     PackageManager.CERT_INPUT_SHA256,
                 )
@@ -146,7 +146,7 @@ open class MainActivity : ComponentActivity() {
 
     protected open fun onToken(token: String): GeckoResult<Any> {
         pendingToken = token
-        if (!handBackToOpenGrind(token)) showTokenPage(token)
+        if (!handBackToFreeGrind(token)) showTokenPage(token)
         return GeckoResult.fromValue(true)
     }
 
@@ -155,14 +155,14 @@ open class MainActivity : ComponentActivity() {
         session.loadUri("$TOKEN_PAGE_URL#${Uri.encode(token)}")
     }
 
-    private fun handBackToOpenGrind(token: String): Boolean {
-        if (!isTrustedOpenGrind(OpenGrindTrust.PACKAGE)) return false
+    private fun handBackToFreeGrind(token: String): Boolean {
+        if (!isTrustedFreeGrind(FreeGrindTrust.PACKAGE)) return false
         val intent = Intent()
-            .setClassName(OpenGrindTrust.PACKAGE, OPEN_GRIND_HANDOFF_ACTIVITY)
+            .setClassName(FreeGrindTrust.PACKAGE, FREE_GRIND_HANDOFF_ACTIVITY)
             .putExtra(EXTRA_TOKEN, token)
         return try {
             handBackLauncher.launch(intent)
-            openGrindHasTheToken = true
+            freeGrindHasTheToken = true
             true
         } catch (e: ActivityNotFoundException) {
             Log.i(TAG, "handoff unavailable", e)
@@ -177,14 +177,14 @@ open class MainActivity : ComponentActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode != RESULT_OK) {
-            openGrindHasTheToken = false
+            freeGrindHasTheToken = false
             pendingToken?.let { showTokenPage(it) }
         }
     }
 
     override fun onStop() {
         super.onStop()
-        if (openGrindHasTheToken) finishAndRemoveTask()
+        if (freeGrindHasTheToken) finishAndRemoveTask()
     }
 
     protected open fun onError(error: String) {
@@ -218,7 +218,7 @@ open class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_TOKEN = "org.opengrind.google_oauth.extra.TOKEN"
+        const val EXTRA_TOKEN = "dev.estopia.free_grind.google_oauth.extra.TOKEN"
         const val RESULT_REFUSED = Activity.RESULT_FIRST_USER
 
         private const val TAG = "grindr-oauth"
@@ -227,6 +227,6 @@ open class MainActivity : ComponentActivity() {
         private const val EXTENSION_ID = "grindr-google-oauth-webextension@opengrind.org"
         private const val EXTENSION_URL = "resource://android/assets/grindr-google-oauth/"
         private const val TOKEN_PAGE_URL = EXTENSION_URL + "shared/token.html"
-        private const val OPEN_GRIND_HANDOFF_ACTIVITY = "org.opengrind.TokenHandoffActivity"
+        private const val FREE_GRIND_HANDOFF_ACTIVITY = "dev.estopia.free_grind.TokenHandoffActivity"
     }
 }

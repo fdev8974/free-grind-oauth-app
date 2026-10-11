@@ -1,4 +1,4 @@
-package org.opengrind.google_oauth
+package dev.estopia.free_grind.google_oauth
 
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -6,14 +6,14 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class OpenGrindTrustTest {
-	private val openGrind = OpenGrindTrust.PACKAGE
-	private val pinnedCert = OpenGrindTrust.SIGNING_CERTS_SHA256.first()
+class FreeGrindTrustTest {
+	private val freeGrind = FreeGrindTrust.PACKAGE
+	private val pinnedCert = FreeGrindTrust.SIGNING_CERTS_SHA256.first()
 	private val foreignCert = "01".repeat(32)
 
 	private class InstalledPackages(
 		private val signerByPackage: Map<String, String>,
-	) : OpenGrindTrust.SigningCertificates {
+	) : FreeGrindTrust.SigningCertificates {
 		val lookups = mutableListOf<String>()
 
 		override fun has(packageName: String, sha256: ByteArray): Boolean {
@@ -22,7 +22,7 @@ class OpenGrindTrustTest {
 			return signer.hexToByteArray().contentEquals(sha256)
 		}
 
-		fun trust(packageName: String?): Boolean = OpenGrindTrust.trusts(
+		fun trust(packageName: String?): Boolean = FreeGrindTrust.trusts(
 			packageName = packageName,
 			certificates = this,
 		)
@@ -42,11 +42,11 @@ class OpenGrindTrustTest {
 	}
 
 	@Test
-	fun `Open Grind signed by any pinned signer is trusted`() {
-		for (cert in OpenGrindTrust.SIGNING_CERTS_SHA256) {
-			val packages = InstalledPackages(mapOf(openGrind to cert))
+	fun `Free Grind signed by any pinned signer is trusted`() {
+		for (cert in FreeGrindTrust.SIGNING_CERTS_SHA256) {
+			val packages = InstalledPackages(mapOf(freeGrind to cert))
 
-			assertTrue(cert, packages.trust(openGrind))
+			assertTrue(cert, packages.trust(freeGrind))
 		}
 	}
 
@@ -56,24 +56,24 @@ class OpenGrindTrustTest {
 
 		assertTrue(
 			releaseCert,
-			OpenGrindTrust.SIGNING_CERTS_SHA256.any { pin ->
+			FreeGrindTrust.SIGNING_CERTS_SHA256.any { pin ->
 				pin.equals(releaseCert, ignoreCase = true)
 			},
 		)
 	}
 
 	@Test
-	fun `Open Grind signed by any other key is refused`() {
-		val packages = InstalledPackages(mapOf(openGrind to foreignCert))
+	fun `Free Grind signed by any other key is refused`() {
+		val packages = InstalledPackages(mapOf(freeGrind to foreignCert))
 
-		assertFalse(packages.trust(openGrind))
+		assertFalse(packages.trust(freeGrind))
 	}
 
 	@Test
-	fun `Open Grind is refused when it is not installed`() {
+	fun `Free Grind is refused when it is not installed`() {
 		val packages = InstalledPackages(emptyMap())
 
-		assertFalse(packages.trust(openGrind))
+		assertFalse(packages.trust(freeGrind))
 	}
 
 	@Test
@@ -86,7 +86,7 @@ class OpenGrindTrustTest {
 
 	@Test
 	fun `a launch without a calling package is refused unchecked`() {
-		val packages = InstalledPackages(mapOf(openGrind to pinnedCert))
+		val packages = InstalledPackages(mapOf(freeGrind to pinnedCert))
 
 		assertFalse(packages.trust(null))
 		assertTrue(packages.lookups.isEmpty())
@@ -94,7 +94,7 @@ class OpenGrindTrustTest {
 
 	@Test
 	fun `every pinned signer is a SHA-256 digest`() {
-		for (cert in OpenGrindTrust.SIGNING_CERTS_SHA256) {
+		for (cert in FreeGrindTrust.SIGNING_CERTS_SHA256) {
 			assertEquals(cert, 32, cert.hexToByteArray().size)
 		}
 	}

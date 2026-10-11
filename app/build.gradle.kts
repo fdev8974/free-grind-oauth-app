@@ -55,14 +55,14 @@ val keystoreProperties = System.getenv("GRINDR_OAUTH_KEYSTORE_PROPERTIES")
     }
 
 android {
-    namespace = "org.opengrind.google_oauth"
+    namespace = "dev.estopia.free_grind.google_oauth"
     compileSdk {
         version = release(36)
     }
     buildToolsVersion = "36.0.0"
 
     defaultConfig {
-        applicationId = "org.opengrind.google_oauth"
+        applicationId = "dev.estopia.free_grind.google_oauth"
         minSdk = 28
         targetSdk = 36
         versionCode = 1003000

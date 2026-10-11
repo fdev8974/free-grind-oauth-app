@@ -1,18 +1,14 @@
-# Open Grind Google OAuth
+# Free Grind Google OAuth
 
-An Android companion app that obtains a Google OAuth token for signing in to third-party Grindr clients such as [Open Grind](https://git.opengrind.org/open-grind/open-grind).
+An Android companion app that obtains a Google OAuth token for signing in to [Free Grind](https://github.com/fdev8974/free-grind). Based on [Open Grind Google OAuth](https://git.opengrind.org/open-grind/google-oauth-app).
 
-[**Download from Releases**](https://git.opengrind.org/open-grind/google-oauth-app/releases) and follow instructions in [**Sign in with Google &rarr; Android section**](https://opengrind.org/guides/sign-in-with-google) guide.
+Install it next to Free Grind, then tap **Sign in with the Google app** on Free Grind's sign-in screen. The token is handed straight back to Free Grind; no copy and paste needed. Opened on its own, the app hands the token to Free Grind too, or shows it for copying when Free Grind is not installed.
+
+Free Grind and this app only talk to each other when both are signed with the same key (Free Grind's release keystore, see [BUILDING.md](./BUILDING.md#signing)).
 
 ## Building
 
 See [BUILDING.md](./BUILDING.md).
-
-Open Grind Google OAuth supports reproducible builds. Read more in [BUILDING.md § Reproducibility](./BUILDING.md#reproducibility).
-
-## Security
-
-Releases are signed with [minisign](https://jedisct1.github.io/minisign/) and ship a detached `.minisig` — see [how to verify](https://git.opengrind.org/open-grind/open-grind/src/branch/main/BUILDING.md#verify-minisign-signature). Never install from unofficial sources.
 
 ## License
 

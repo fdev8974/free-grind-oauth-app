@@ -98,5 +98,5 @@ jobs:
       - name: Publish verified artifact
         uses: https://code.forgejo.org/forgejo/upload-artifact@16871d9e8cfcf27ff31822cac382bbb5450f1e1e
         with:
-          name: open-grind-google-oauth-unsigned
+          name: free-grind-google-oauth-unsigned
           path: verified/

@@ -2,8 +2,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-RELEASE_KEY=RWReleaseOpenGrindurRQcmR+NovOaU5IEU3LM5l6TcXJvOGYw2m4O+
-RELEASE_CERT=2805FDD8F0BADB9424D3244C5E5B3473CEF5B8798EC1117382E89EDA45C3658C
+# Free Grind has no minisign key; set FREE_GRIND_MINISIGN_PUBKEY to sign anyway
+RELEASE_KEY=${FREE_GRIND_MINISIGN_PUBKEY:-}
+# Same certificate GitHub Actions signs Free Grind releases with
+RELEASE_CERT=7CE9E5CDAC620EC798BEA6749AED4C6D59BF12AB5E1DC8CB59C117BB929FC9D0
 ABIS=(arm64-v8a:arm64-v8a armeabi-v7a:v7a x86_64:x86_64)
 
 tag=${1:-}
@@ -12,7 +14,8 @@ if [ -z "$tag" ]; then
 	echo "usage: contrib/sign-release.sh <tag> [artifacts-dir]" >&2
 	echo "  artifacts-dir holds the apks, default app/build/outputs/apk/release" >&2
 	echo "  GRINDR_OAUTH_KEYSTORE_PROPERTIES signs app-<abi>-release-unsigned.apk" >&2
-	echo "  OPEN_GRIND_MINISIGN_KEY overrides ~/.minisign/minisign.key" >&2
+	echo "  FREE_GRIND_MINISIGN_PUBKEY enables minisign signing (public key to verify against)" >&2
+	echo "  FREE_GRIND_MINISIGN_KEY overrides ~/.minisign/minisign.key" >&2
 	exit 2
 fi
 
@@ -28,7 +31,9 @@ if [ ! -d "$artifacts" ]; then
 	exit 1
 fi
 
-for binary in apksigner minisign; do
+binaries=(apksigner)
+[ -n "$RELEASE_KEY" ] && binaries+=(minisign)
+for binary in "${binaries[@]}"; do
 	if ! command -v "$binary" > /dev/null; then
 		echo "$binary not found, run inside 'nix develop'" >&2
 		exit 1
@@ -89,7 +94,7 @@ for pair in "${ABIS[@]}"; do
 	published=${pair##*:}
 	unsigned="$artifacts/app-$built-release-unsigned.apk"
 	presigned="$artifacts/app-$built-release.apk"
-	asset="$out/open-grind-google-oauth-$tag-$published.apk"
+	asset="$out/free-grind-google-oauth-$tag-$published.apk"
 
 	if [ -f "$unsigned" ]; then
 		apksigner sign \
@@ -115,13 +120,15 @@ for pair in "${ABIS[@]}"; do
 		exit 1
 	fi
 
-	minisign -Sm "$asset" ${OPEN_GRIND_MINISIGN_KEY:+-s "$OPEN_GRIND_MINISIGN_KEY"}
-	minisign -Vm "$asset" -P "$RELEASE_KEY" > /dev/null
+	if [ -n "$RELEASE_KEY" ]; then
+		minisign -Sm "$asset" ${FREE_GRIND_MINISIGN_KEY:+-s "$FREE_GRIND_MINISIGN_KEY"}
+		minisign -Vm "$asset" -P "$RELEASE_KEY" > /dev/null
 
-	named=$(sed -n '3p' "$asset.minisig" | tr '\t' '\n' | sed -n 's/^file://p')
-	if [ "$named" != "$(basename "$asset")" ]; then
-		echo "signature names $named, not $(basename "$asset")" >&2
-		exit 1
+		named=$(sed -n '3p' "$asset.minisig" | tr '\t' '\n' | sed -n 's/^file://p')
+		if [ "$named" != "$(basename "$asset")" ]; then
+			echo "signature names $named, not $(basename "$asset")" >&2
+			exit 1
+		fi
 	fi
 
 	echo "signed $(basename "$asset")"
