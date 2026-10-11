@@ -71,7 +71,7 @@ jobs:
           echo "GRINDR_OAUTH_KEYSTORE_PROPERTIES=$RUNNER_TEMP/keystore.properties" >> "$GITHUB_ENV"
 
       - name: Test and build signed APKs
-        run: ./gradlew --no-daemon :app:testReleaseUnitTest :app:assembleRelease
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleRelease
 
       # Checks every APK is signed with the pinned release certificate and
       # names them free-grind-google-oauth-v<version>-<abi>.apk.
