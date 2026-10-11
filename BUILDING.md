@@ -67,6 +67,13 @@ GRINDR_OAUTH_KEYSTORE_PROPERTIES=/home/you/.config/free-grind/keystore.propertie
 
 `contrib/sign-release.sh <tag>` checks that every APK is signed with the release certificate.
 
+### GitHub Actions
+
+Every push to `main` runs [release-main.yml](./.github/workflows/release-main.yml): it builds the three ABIs, signs them, checks the certificate with `contrib/sign-release.sh` and publishes a release tagged `main-<sha>`. The repository needs these secrets:
+
+- `ANDROID_KEYSTORE_BASE64`: the same value as in the free-grind repository
+- `ANDROID_KEYSTORE_PASSWORD` (optional): defaults to `opengrind`, like Free Grind's `app/build.gradle.kts`
+
 ## Verifying a release
 
 ```bash

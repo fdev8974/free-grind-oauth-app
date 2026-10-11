@@ -1,0 +1,141 @@
+name: Release Main
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          # Default is "tools platform-tools"; the legacy `tools` package no longer exists.
+          packages: platform-tools
+
+      - name: Install Android SDK components
+        run: |
+          sdkmanager --install \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
+
+      - name: Accept Android licenses
+        run: yes | sdkmanager --licenses
+
+      - name: Derive release metadata
+        id: vars
+        run: |
+          version=$(grep -oE 'versionName = "[^"]+"' app/build.gradle.kts | cut -d'"' -f2)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag_name=main-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "release_name=Free Grind Google OAuth v$version (${GITHUB_SHA::7})" >> "$GITHUB_OUTPUT"
+
+      # Must be the keystore that signs Free Grind itself (same secret as in
+      # the free-grind repo), otherwise Free Grind refuses the tokens.
+      - name: Restore Android keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "ANDROID_KEYSTORE_BASE64 secret is not set" >&2
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "keyAlias=opengrind"
+            echo "password=${ANDROID_KEYSTORE_PASSWORD:-opengrind}"
+          } > "$RUNNER_TEMP/keystore.properties"
+          echo "GRINDR_OAUTH_KEYSTORE_PROPERTIES=$RUNNER_TEMP/keystore.properties" >> "$GITHUB_ENV"
+
+      - name: Test and build signed APKs
+        run: ./gradlew --no-daemon :app:testReleaseUnitTest :app:assembleRelease
+
+      # Checks every APK is signed with the pinned release certificate and
+      # names them free-grind-google-oauth-v<version>-<abi>.apk.
+      - name: Verify signatures
+        run: |
+          export PATH="$ANDROID_HOME/build-tools/36.0.0:$PATH"
+          contrib/sign-release.sh "v${{ steps.vars.outputs.version }}"
+
+      - name: Create release
+        uses: actions/github-script@v8
+        env:
+          TAG_NAME: ${{ steps.vars.outputs.tag_name }}
+          RELEASE_NAME: ${{ steps.vars.outputs.release_name }}
+          ASSET_DIR: app/build/outputs/release/v${{ steps.vars.outputs.version }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const apks = fs.readdirSync(process.env.ASSET_DIR).filter((f) => f.endsWith('.apk'));
+            if (apks.length === 0) {
+              throw new Error(`No APKs in ${process.env.ASSET_DIR}`);
+            }
+
+            const { data: release } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: process.env.TAG_NAME,
+              target_commitish: context.sha,
+              name: process.env.RELEASE_NAME,
+              body: [
+                'Automated release generated from a push to `main`.',
+                '',
+                'Most phones need the `arm64-v8a` APK.',
+                '',
+                `Commit: ${context.sha}`
+              ].join('\n'),
+              draft: true,
+              prerelease: false,
+              generate_release_notes: true
+            });
+
+            for (const name of apks) {
+              const data = fs.readFileSync(path.join(process.env.ASSET_DIR, name));
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id,
+                name,
+                data,
+                headers: {
+                  'content-type': 'application/vnd.android.package-archive',
+                  'content-length': data.length
+                }
+              });
+              console.log(`✓ Uploaded ${name}`);
+            }
+
+            // Publish only once every APK is attached.
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.id,
+              draft: false,
+              make_latest: 'true'
+            });
+            console.log(`✓ Published ${process.env.RELEASE_NAME}`);
