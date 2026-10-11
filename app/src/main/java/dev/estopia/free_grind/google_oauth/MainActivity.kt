@@ -224,7 +224,7 @@ open class MainActivity : ComponentActivity() {
         private const val TAG = "grindr-oauth"
         private const val HELPER_URL = "https://web.grindr.com/"
         private const val NATIVE_APP = "grindr_google_oauth"
-        private const val EXTENSION_ID = "grindr-google-oauth-webextension@opengrind.org"
+        private const val EXTENSION_ID = "freegrind-google-oauth-webextension@estopia.dev"
         private const val EXTENSION_URL = "resource://android/assets/grindr-google-oauth/"
         private const val TOKEN_PAGE_URL = EXTENSION_URL + "shared/token.html"
         private const val FREE_GRIND_HANDOFF_ACTIVITY = "dev.estopia.free_grind.TokenHandoffActivity"
